@@ -1,33 +1,41 @@
-# RunPod SVD-XT Requirements
+# RunPod SVD-XT Requirements - COMPLETE LIST
 # Fixed versions to avoid torch.xpu compatibility issue
 
-# RunPod SDK
+# ============ RUNPOD ============
 runpod>=1.7.0
 
-# Core ML Framework (matches base image)
+# ============ PYTORCH (base image has it, but pin version) ============
 torch>=2.1.0,<2.3.0
 torchvision>=0.16.0
 
-# Diffusers - pinned to avoid xpu error
+# ============ DIFFUSERS STACK ============
 diffusers==0.25.1
 transformers>=4.36.0,<4.42.0
 accelerate>=0.25.0,<0.32.0
 safetensors>=0.4.0
-
-# HuggingFace Hub
 huggingface-hub>=0.20.0,<0.24.0
 
-# Image Processing
+# ============ IMAGE PROCESSING ============
 Pillow>=10.0.0
 numpy>=1.24.0
+opencv-python-headless>=4.8.0
 
-# Video Export
+# ============ VIDEO EXPORT (multiple backends) ============
 imageio>=2.33.0
 imageio-ffmpeg>=0.4.9
+av>=10.0.0
 
-# HTTP Requests
+# ============ NETWORK ============
 requests>=2.31.0
 
-# CLIP dependencies
+# ============ CLIP/TEXT DEPENDENCIES ============
 ftfy>=6.1.0
 regex>=2023.0.0
+
+# ============ MATH/SCIENCE (diffusion models need these) ============
+scipy>=1.10.0
+einops>=0.7.0
+
+# ============ TOKENIZERS ============
+sentencepiece>=0.1.99
+protobuf>=3.20.0

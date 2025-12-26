@@ -32,10 +32,10 @@ def load_model():
     print("Model: stabilityai/stable-video-diffusion-img2vid-xt")
 
     # Load SVD-XT (25 frames, better temporal consistency)
+    # Note: No variant parameter - uses default model files
     pipe = StableVideoDiffusionPipeline.from_pretrained(
         "stabilityai/stable-video-diffusion-img2vid-xt",
-        torch_dtype=torch.float16,
-        variant="fp16"
+        torch_dtype=torch.float16
     )
 
     # Move to GPU

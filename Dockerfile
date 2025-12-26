@@ -10,28 +10,45 @@ ENV HF_HOME=/app/huggingface
 ENV TRANSFORMERS_CACHE=/app/huggingface
 ENV TORCH_HOME=/app/torch_cache
 
-# System deps
+# System dependencies (ffmpeg, opencv deps, video codecs)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ffmpeg libgl1-mesa-glx libglib2.0-0 git wget \
+    ffmpeg \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libswscale-dev \
+    libv4l-dev \
+    git \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
-# Python deps
+# Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Test imports first
+# Test all critical imports
 RUN python -c "import torch; print(f'PyTorch: {torch.__version__}')"
+RUN python -c "import cv2; print(f'OpenCV: {cv2.__version__}')"
 RUN python -c "import diffusers; print(f'Diffusers: {diffusers.__version__}')"
-RUN python -c "from diffusers import StableVideoDiffusionPipeline; print('SVD Pipeline OK')"
+RUN python -c "from diffusers import StableVideoDiffusionPipeline; print('SVD Pipeline: OK')"
+RUN python -c "from diffusers.utils import export_to_video; print('export_to_video: OK')"
+RUN python -c "import scipy; print(f'SciPy: {scipy.__version__}')"
+RUN python -c "import einops; print('Einops: OK')"
 
 # Download model
 COPY download_model.py .
 RUN python -u download_model.py
 RUN rm download_model.py
 
-# Clear token
+# Clear token from environment
 ENV HF_TOKEN=""
 
+# Copy handler
 COPY handler.py .
+
 CMD ["python", "-u", "handler.py"]
