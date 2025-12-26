@@ -1,25 +1,48 @@
 """Download SVD-XT model at build time"""
 import os
-import torch
+import sys
+
+print("=" * 50)
+print("SVD-XT Model Download Script")
+print("=" * 50)
 
 # Get token from environment
 token = os.environ.get("HF_TOKEN", "")
+print(f"HF_TOKEN present: {bool(token)}")
 
-if token:
-    from huggingface_hub import login
-    login(token=token)
-    print("Logged in to HuggingFace")
-else:
-    print("No HF_TOKEN, trying without auth")
+try:
+    if token:
+        from huggingface_hub import login
+        login(token=token)
+        print("SUCCESS: Logged in to HuggingFace")
+    else:
+        print("WARNING: No HF_TOKEN, trying without auth")
 
-from diffusers import StableVideoDiffusionPipeline
+    import torch
+    print(f"PyTorch version: {torch.__version__}")
+    print(f"CUDA available: {torch.cuda.is_available()}")
 
-print("Downloading SVD-XT model (this takes a while)...")
+    from diffusers import StableVideoDiffusionPipeline
+    print("Diffusers imported successfully")
 
-pipe = StableVideoDiffusionPipeline.from_pretrained(
-    "stabilityai/stable-video-diffusion-img2vid-xt",
-    torch_dtype=torch.float16,
-    variant="fp16"
-)
+    print("\nDownloading SVD-XT model...")
+    print("This will take several minutes...")
 
-print("Model downloaded successfully!")
+    # Try without variant first (more compatible)
+    pipe = StableVideoDiffusionPipeline.from_pretrained(
+        "stabilityai/stable-video-diffusion-img2vid-xt",
+        torch_dtype=torch.float16
+    )
+
+    print("\n" + "=" * 50)
+    print("SUCCESS: Model downloaded!")
+    print("=" * 50)
+
+except Exception as e:
+    print("\n" + "=" * 50)
+    print(f"ERROR: {type(e).__name__}")
+    print(f"MESSAGE: {str(e)}")
+    print("=" * 50)
+    import traceback
+    traceback.print_exc()
+    sys.exit(1)
