@@ -1,16 +1,16 @@
 # RunPod Serverless - Stable Video Diffusion (SVD-XT)
 # Image-to-Video Generation - NO AUDIO
-# Based on: https://huggingface.co/stabilityai/stable-video-diffusion-img2vid-xt
-
 FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 WORKDIR /app
 
-# Set environment variables
+# HuggingFace token - passed at BUILD TIME via RunPod, NOT stored in image
+ARG HF_TOKEN
+
+# Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV HF_HOME=/app/huggingface
 ENV TRANSFORMERS_CACHE=/app/huggingface
-ENV DIFFUSERS_CACHE=/app/huggingface
 ENV TORCH_HOME=/app/torch_cache
 
 # Install system dependencies
@@ -29,44 +29,36 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Upgrade pip
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# Copy and install Python dependencies
+# Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download SVD-XT model (fp16 variant) to avoid cold start delays
-# Model size: ~10GB
+# Download SVD-XT model using build-time token
 RUN python -c "\
-from diffusers import StableVideoDiffusionPipeline; \
+import os; \
 import torch; \
+token = '${HF_TOKEN}'; \
+if token and token != '\${HF_TOKEN}': \
+    from huggingface_hub import login; \
+    login(token=token); \
+    print('Logged in to HuggingFace'); \
+from diffusers import StableVideoDiffusionPipeline; \
 print('Downloading SVD-XT model...'); \
 pipe = StableVideoDiffusionPipeline.from_pretrained( \
     'stabilityai/stable-video-diffusion-img2vid-xt', \
     torch_dtype=torch.float16, \
     variant='fp16' \
 ); \
-print('Model downloaded successfully!'); \
+print('Model downloaded!'); \
 "
 
-# Verify all dependencies are installed
-RUN python -c "\
-import runpod; \
-import torch; \
-import diffusers; \
-import transformers; \
-import accelerate; \
-import PIL; \
-import numpy; \
-import imageio; \
-import requests; \
-print('All dependencies verified!'); \
-print(f'PyTorch: {torch.__version__}'); \
-print(f'Diffusers: {diffusers.__version__}'); \
-print(f'Transformers: {transformers.__version__}'); \
-print(f'CUDA available: {torch.cuda.is_available()}'); \
-"
+# Clear token from environment (security)
+ENV HF_TOKEN=""
+
+# Verify
+RUN python -c "import runpod; import torch; import diffusers; print('OK')"
 
 # Copy handler
 COPY handler.py .
 
-# RunPod serverless entry point
 CMD ["python", "-u", "handler.py"]
