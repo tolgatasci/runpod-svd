@@ -4,8 +4,9 @@ FROM runpod/pytorch:2.2.0-py3.10-cuda12.1.1-devel-ubuntu22.04
 
 WORKDIR /app
 
-# HuggingFace token - passed at BUILD TIME via RunPod, NOT stored in image
+# HuggingFace token - passed at BUILD TIME via RunPod
 ARG HF_TOKEN
+ENV HF_TOKEN=${HF_TOKEN}
 
 # Environment variables
 ENV PYTHONUNBUFFERED=1
@@ -33,30 +34,15 @@ RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Download SVD-XT model using build-time token
-RUN python -c "\
-import os; \
-import torch; \
-token = '${HF_TOKEN}'; \
-if token and token != '\${HF_TOKEN}': \
-    from huggingface_hub import login; \
-    login(token=token); \
-    print('Logged in to HuggingFace'); \
-from diffusers import StableVideoDiffusionPipeline; \
-print('Downloading SVD-XT model...'); \
-pipe = StableVideoDiffusionPipeline.from_pretrained( \
-    'stabilityai/stable-video-diffusion-img2vid-xt', \
-    torch_dtype=torch.float16, \
-    variant='fp16' \
-); \
-print('Model downloaded!'); \
-"
+# Copy model download script and run it
+COPY download_model.py .
+RUN python download_model.py && rm download_model.py
 
-# Clear token from environment (security)
+# Clear token from environment
 ENV HF_TOKEN=""
 
-# Verify
-RUN python -c "import runpod; import torch; import diffusers; print('OK')"
+# Verify dependencies
+RUN python -c "import runpod; import torch; import diffusers; print('All OK')"
 
 # Copy handler
 COPY handler.py .
